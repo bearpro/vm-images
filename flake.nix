@@ -20,6 +20,7 @@
           default = pkgs.mkShellNoCC {
             packages = with pkgs; [
               gnumake
+              qemu
             ];
           };
         });
