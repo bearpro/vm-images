@@ -1,4 +1,8 @@
-# VM Image Layout
+# VM Images
+
+[![AI Slop Inside](https://sladge.net/badge.svg)](https://sladge.net)
+
+## Soruce conde layout
 
 This repository keeps image-building concerns split into three layers.
 
@@ -17,3 +21,4 @@ When changing the build:
 - Put environment-specific boot and image-generation details into `*-image.nix`.
 
 The goal is to keep the same system definition reusable across different deployment targets while changing only the disk model and target-specific image settings when needed.
+
