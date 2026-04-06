@@ -32,6 +32,19 @@ preinstalled-docker-proxmox: _dist-dir
 	@readlink -f ./dist/preinstalled-docker-proxmox.raw
 	@readlink -f ./dist/preinstalled-docker-proxmox.qcow2
 
+remnanode: _dist-dir
+	@rm -f ./dist/remnanode.raw ./dist/remnanode.qcow2
+	@( cd ./dist && "$$(nix-build '<nixpkgs/nixos>' \
+		-A config.system.build.diskoImagesScript \
+		-I nixos-config=../remnanode/image.nix \
+		--no-out-link)" )
+	@qemu-img convert -f raw -O qcow2 -c ./dist/remnanode.raw ./dist/remnanode.qcow2
+	@echo
+	@echo "Built proxmox images:"
+	@readlink -f ./dist/preinstalled-docker-proxmox.raw
+	@readlink -f ./dist/preinstalled-docker-proxmox.qcow2
+
+
 boot-preinstalled-docker-proxmox-local: ./dist/preinstalled-docker-proxmox.qcow2
 	@cp "$$(nix-build '<nixpkgs>' -A OVMF.fd --no-out-link)/FV/OVMF_VARS.fd" ./dist/preinstalled-docker-proxmox.ovmf-vars.fd
 	@exec qemu-system-x86_64 \
