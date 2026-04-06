@@ -1,6 +1,6 @@
 let
   cryptrootKey = builtins.path {
-    path = ./cryptroot.key;
+    path = ../cryptroot.key;
     name = "cryptroot.key";
   };
 in
