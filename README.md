@@ -2,7 +2,7 @@
 
 [![AI Slop Inside](https://sladge.net/badge.svg)](https://sladge.net)
 
-## Soruce conde layout
+## Soruce code layout
 
 This repository keeps image-building concerns split into three layers.
 
