@@ -1,6 +1,7 @@
+# remnanode/disco.nix
 let
   cryptrootKey = builtins.path {
-    path = ../cryptroot.key;
+    path = ../secrets/cryptroot.key;
     name = "cryptroot.key";
   };
 in

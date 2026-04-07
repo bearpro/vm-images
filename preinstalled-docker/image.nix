@@ -1,13 +1,17 @@
-# preinstalled-docker/proxmox-image.nix
+# preinstalled-docker/image.nix
 let
   cryptrootKey = builtins.path {
-    path = ../cryptroot.key;
+    path = ../secrets/cryptroot.key;
     name = "cryptroot.key";
   };
   diskoSrc = builtins.fetchTarball {
     url = "https://github.com/nix-community/disko/archive/5ad85c82cc52264f4beddc934ba57f3789f28347.tar.gz";
     sha256 = "035nyq47jvhxf2d00frd983h5rn56zs84bk41fax88sjq2gb02iw";
   };
+  bootCfg = import (
+    if builtins.pathExists ../secrets/boot.nix 
+    then ../secrets/boot.nix 
+    else ../secrets/boot.sample.nix);
 in
 { lib, modulesPath, ... }:
 
@@ -21,23 +25,22 @@ in
 
   disko = {
     imageBuilder = {
-      name = "preinstalled-docker-proxmox";
+      name = "preinstalled-docker";
       imageFormat = "raw";
     };
 
-    devices.disk.main.imageName = "preinstalled-docker-proxmox";
+    devices.disk.main.imageName = "preinstalled-docker";
   };
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  # The disko image builder installs systemd-boot, but the resulting image
-  # does not end up with initrd secrets appended as a separate initrd entry.
-  # Force embedding the LUKS key into the primary initrd for this target.
   boot.loader.supportsInitrdSecrets = lib.mkForce false;
-  boot.kernelParams = [
-    "console=ttyS0,115200n8"
-  ];
-  systemd.services."serial-getty@ttyS0".enable = true;
+
+  boot.kernelParams = 
+    if bootCfg.enableBootTty
+    then [ "console=ttyS0,115200n8" ]
+    else [ "quiet" "loglevel=0" "rd.udev.log_level=0" "udev.log_priority=0" ];
+  systemd.services."serial-getty@ttyS0".enable = bootCfg.enableBootTty;
 
   boot.initrd.availableKernelModules = [
     "virtio_pci"
@@ -68,5 +71,5 @@ in
     "/crypto_keyfile.bin" = cryptrootKey;
   };
 
-  services.qemuGuest.enable = true;
+  services.qemuGuest.enable = bootCfg.enableGuest;
 }

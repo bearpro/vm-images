@@ -1,3 +1,5 @@
 dist/**
 **/cryptroot.key
-
+secrets/**
+!secrets/.gitkeep
+!secrets/**sample.nix

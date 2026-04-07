@@ -1,0 +1,4 @@
+{
+    enableGuest = false;
+    enableBootTty = false;
+}

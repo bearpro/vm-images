@@ -1,8 +1,11 @@
-# preinstalled-docker/configuration.nix
+# remnanode/configuration.nix
 { config, pkgs, lib, ... }:
 
 let 
-  me = import ./me.nix;
+  secrets = {
+    user = import ../secrets/user.nix;
+    remnanode = import ../secrets/remnanode.nix;
+  };
   remnanodeWorkdir = "/opt/remnanode";
 in 
 {
@@ -24,12 +27,12 @@ in
     };
   };
 
-  users.users.${me.username} = {
+  users.users.${secrets.user.username} = {
     isNormalUser = true;
     description = "Main user";
     extraGroups = [ "wheel" "networkmanager" "docker" ];
-    hashedPassword = me.hashedPassword;
-    openssh.authorizedKeys.keys = me.authorizedKeys;
+    hashedPassword = secrets.user.hashedPassword;
+    openssh.authorizedKeys.keys = secrets.user.authorizedKeys;
   };
 
   security.sudo.wheelNeedsPassword = true;
@@ -57,7 +60,7 @@ in
   };
 
   environment.etc."remnanode/docker-compose.yml".text = ''
-    services:
+  services:
     remnanode:
       container_name: remnanode
       hostname: remnanode
@@ -71,17 +74,17 @@ in
           soft: 1048576
           hard: 1048576
       environment:
-        - NODE_PORT=${me.remnaNodePort}
-        - SECRET_KEY=${me.remnaNodeSecret}
+        - NODE_PORT=${secrets.remnanode.port}
+        - SECRET_KEY=${secrets.remnanode.secret}
   '';
 
   systemd.tmpfiles.rules = [
     "d ${remnanodeWorkdir} 0755 root root - -"
-    "L+ ${remnanodeWorkdir}/docker-compose.yml - - - - /etc/myapp/docker-compose.yml"
+    "L+ ${remnanodeWorkdir}/docker-compose.yml - - - - /etc/remnanode/docker-compose.yml"
   ];
 
-  systemd.services.docker-compose-myapp = {
-    description = "Start my docker compose stack";
+  systemd.services.remnanode = {
+    description = "Start remnanode using docker compose";
     after = [ "network-online.target" "docker.service" ];
     wants = [ "network-online.target" "docker.service" ];
     wantedBy = [ "multi-user.target" ];
