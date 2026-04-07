@@ -6,7 +6,6 @@ let
   };
 in
 { ... }:
-
 {
   disko.devices = {
     disk.main = {
@@ -17,6 +16,11 @@ in
       content = {
         type = "gpt";
         partitions = {
+          bios = {
+            size = "2M";
+            type = "EF02";
+          };
+
           ESP = {
             size = "512M";
             type = "EF00";

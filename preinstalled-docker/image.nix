@@ -32,9 +32,12 @@ in
     devices.disk.main.imageName = "preinstalled-docker";
   };
 
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-  boot.loader.supportsInitrdSecrets = lib.mkForce false;
+  boot.loader.grub = {
+    enable = true;
+    device = "/dev/vda";
+    efiSupport = true;
+    efiInstallAsRemovable = true;
+  };
 
   boot.kernelParams = 
     if bootCfg.enableBootTty

@@ -21,6 +21,7 @@ in
   system.stateVersion = "25.11";
 
   networking.hostName = "nixos-remnanode";
+  networking.firewall.enable = false;
 
   time.timeZone = "Europe/Moscow";
 

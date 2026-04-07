@@ -10,6 +10,7 @@ in
   system.stateVersion = "25.05";
 
   networking.hostName = "nixos";
+  networking.firewall.enable = false;
 
   time.timeZone = "Europe/Moscow";
 
