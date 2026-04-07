@@ -9,8 +9,7 @@ in
 {
   system.stateVersion = "25.05";
 
-  networking.hostName = "nixos-vm";
-  networking.useDHCP = lib.mkDefault true;
+  networking.hostName = "nixos";
 
   time.timeZone = "Europe/Moscow";
 
@@ -45,6 +44,7 @@ in
     curl
     vim
     htop
+    cloud-init
   ];
 }
 

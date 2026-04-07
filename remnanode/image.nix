@@ -70,5 +70,19 @@ in
     "/crypto_keyfile.bin" = cryptrootKey;
   };
 
-  services.qemuGuest.enable = bootCfg.enableGuest;
+  services.cloud-init = lib.mkIf 
+    (bootCfg.networkMode == "cloud-init") 
+    {
+      enable = true;
+      network.enable = true;
+      settings = {
+        datasource_list = [ "NoCloud" ]; # Accept only NoCloud
+        users = []; # Do not accept users
+        disable_root = true;
+      };
+    };
+  networking.useNetworkd = lib.mkIf (bootCfg.networkMode == "cloud-init") true;
+  networking.useDHCP = bootCfg.networkMode == "dhcp";
+
+  services.qemuGuest.enable = lib.mkIf bootCfg.enableGuest true;
 }
