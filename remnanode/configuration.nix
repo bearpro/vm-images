@@ -7,6 +7,15 @@ let
     remnanode = import ../secrets/remnanode.nix;
   };
   remnanodeWorkdir = "/opt/remnanode";
+  remnanodeNodeImageTar = pkgs.dockerTools.pullImage {
+    imageName = "remnawave/node";
+    imageDigest = "sha256:fd1cc3d85bb16d56299676d2803ab21ef5fca2f8526fab792a6a16624d8b1543";
+    finalImageName = "remnawave/node";
+    finalImageTag = "2.7.0";
+    outputHashAlgo = "sha256";
+    outputHash = "sha256-79eogI1IphDfDKUYNfRwhMOfsMQ70VpnQV+WvdF0GXY=";
+  };
+  remnanodeNodeImageTarPath = "/etc/remnanode/remnawave-node-2.7.0.tar";
 in 
 {
   system.stateVersion = "25.11";
@@ -64,7 +73,7 @@ in
     remnanode:
       container_name: remnanode
       hostname: remnanode
-      image: remnawave/node:latest
+      image: remnawave/node:2.7.0
       network_mode: host
       restart: always
       cap_add:
@@ -77,6 +86,7 @@ in
         - NODE_PORT=${secrets.remnanode.port}
         - SECRET_KEY=${secrets.remnanode.secret}
   '';
+  environment.etc."remnanode/remnawave-node-2.7.0.tar".source = remnanodeNodeImageTar;
 
   systemd.tmpfiles.rules = [
     "d ${remnanodeWorkdir} 0755 root root - -"
@@ -84,7 +94,7 @@ in
   ];
 
   systemd.services.remnanode = {
-    description = "Start remnanode using docker compose";
+    description = "Remnanode in docker compose";
     after = [ "network-online.target" "docker.service" ];
     wants = [ "network-online.target" "docker.service" ];
     wantedBy = [ "multi-user.target" ];
@@ -92,11 +102,11 @@ in
       Type = "oneshot";
       RemainAfterExit = true;
       WorkingDirectory = remnanodeWorkdir;
-      ExecStart = "${pkgs.docker}/bin/docker compose up -d";
+      ExecStartPre = "${pkgs.docker}/bin/docker load -i ${remnanodeNodeImageTarPath}";
+      ExecStart = "${pkgs.docker}/bin/docker compose up --pull never -d";
       ExecStop = "${pkgs.docker}/bin/docker compose down";
       TimeoutStartSec = "0";
       Restart = "on-failure";
     };
   };
 }
-
