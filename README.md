@@ -39,8 +39,17 @@ cryptographically secure image. But have to note my suspicion, that hosting
 providers are less likely to perform attack on your VM by hijacking your 
 console interactions, than to just look into your image. It's your choice here.
 
+## One more security note
 
-## Soruce code layout
+All secrets used in build process end up in `/nix/store`.
+After building an image, you should run garbage collection to 
+remove unreachable store paths:
+
+```bash
+sudo nix-collect-garbage -d
+```
+
+## Source code layout
 
 This repository keeps image-building concerns split into three layers.
 
@@ -59,4 +68,3 @@ When changing the build:
 - Put environment-specific boot and image-generation details into `*-image.nix`.
 
 The goal is to keep the same system definition reusable across different deployment targets while changing only the disk model and target-specific image settings when needed.
-
