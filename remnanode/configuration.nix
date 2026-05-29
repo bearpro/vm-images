@@ -21,7 +21,19 @@ in
   system.stateVersion = "25.11";
 
   networking.hostName = "nixos-remnanode";
-  networking.firewall.enable = false;
+  
+  networking.firewall = {
+    enable = true;
+
+    allowedTCPPorts = [
+      22
+      80
+      443
+      (lib.toInt secrets.remnanode.port)
+    ];
+
+    allowedUDPPorts = [ 443 ];
+  };
 
   time.timeZone = "Europe/Moscow";
 
@@ -47,13 +59,36 @@ in
   security.sudo.wheelNeedsPassword = true;
 
   environment.systemPackages = with pkgs; [
+    # system
+    cloud-init
+    openssl
+
+    # util
     git
     curl
-    vim
+    wget
+    neovim
     htop
-    cloud-init
+    tmux
+
+    # network
+    tcpdump
+    nmap
+    mtr
+    traceroute
+    iperf3
+    socat
+    netcat-openbsd
+    ethtool
+    whois
+    dig
+
+    # docker
     docker
     docker-compose
+    
+    # nginx
+    nginx
   ];
 
   virtualisation.docker = {
@@ -90,9 +125,67 @@ in
   environment.etc."remnanode/remnawave-node-2.7.0.tar".source = remnanodeNodeImageTar;
 
   systemd.tmpfiles.rules = [
+    # remnanode
     "d ${remnanodeWorkdir} 0755 root root - -"
     "L+ ${remnanodeWorkdir}/docker-compose.yml - - - - /etc/remnanode/docker-compose.yml"
   ];
+
+  system.activationScripts.mutableNginxDefaults.text = ''
+    # Nginx directories
+    ${pkgs.coreutils}/bin/install -d -m 0755 -o root -g root /etc/nginx
+    ${pkgs.coreutils}/bin/install -d -m 0755 -o root -g root /etc/nginx/conf.d
+    ${pkgs.coreutils}/bin/install -d -m 0755 -o root -g root /etc/nginx/certs
+
+    # Default http server
+    if [ ! -e /etc/nginx/conf.d/default.conf ]; then
+      cat > /etc/nginx/conf.d/default.conf <<'EOF'
+    server {
+        listen 80 default_server;
+        server_name _;
+
+        return 301 https://$host$request_uri;
+    }
+
+    server {
+        listen 127.0.0.1:442 ssl default_server;
+        server_name _;
+
+        ssl_certificate     /etc/nginx/certs/fallback.crt;
+        ssl_certificate_key /etc/nginx/certs/fallback.key;
+
+        return 401;
+    }
+    EOF
+    fi
+
+    # Default stream config
+    if [ ! -e /etc/nginx/stream.conf ]; then
+      cat > /etc/nginx/stream.conf <<'EOF'
+    map $ssl_preread_server_name $backend {
+        default 127.0.0.1:442;
+    }
+
+    server {
+        listen 0.0.0.0:443;
+        proxy_pass $backend;
+        ssl_preread on;
+    }
+    EOF
+    fi
+    
+    # Fallback cert
+    if [ ! -e /etc/nginx/certs/fallback.key ]; then
+      ${pkgs.openssl}/bin/openssl req -x509 -newkey rsa:2048 -nodes \
+        -keyout /etc/nginx/certs/fallback.key \
+        -out /etc/nginx/certs/fallback.crt \
+        -days 3650 \
+        -subj "/CN=default.invalid"
+
+      chmod 600 /etc/nginx/certs/fallback.key
+      chmod 644 /etc/nginx/certs/fallback.crt
+      chown nginx:nginx /etc/nginx/certs/fallback.key /etc/nginx/certs/fallback.crt
+    fi
+  '';
 
   systemd.services.remnanode = {
     description = "Remnanode in docker compose";
@@ -110,4 +203,25 @@ in
       Restart = "on-failure";
     };
   };
+
+  services.nginx = {
+    enable = true;
+
+    recommendedProxySettings = true;
+    recommendedTlsSettings = true;
+    recommendedGzipSettings = true;
+
+    streamConfig = ''
+      include /etc/nginx/stream.conf;
+    '';
+
+    appendHttpConfig = ''
+      include /etc/nginx/conf.d/*.conf;
+    '';
+  };
+
+  services.journald.extraConfig = ''
+    SystemMaxUse=500M
+    RuntimeMaxUse=100M
+  '';
 }
